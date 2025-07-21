@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mini Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // This tells Tailwind to use the 'media' strategy for dark mode.
+      // It will automatically apply dark classes based on the user's OS theme.
+      tailwind.config = {
+        darkMode: "media",
+      };
+    </script>
+    <style>
+      /* --- Light Mode Default Styles --- */
+      /* A subtle shadow for a clean look on a light background */
+      .interactive-element {
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+          0 2px 4px -2px rgb(0 0 0 / 0.1);
+        transition: all 0.2s ease-in-out;
+      }
+
+      .title-text {
+        /* No text shadow in light mode for better readability */
+        color: #1f2937; /* A dark gray for the title */
+      }
+
+      /* --- Dark Mode Styles (Applied automatically by the browser) --- */
+      @media (prefers-color-scheme: dark) {
+        /* Your beautiful neon glow is applied only in dark mode */
+        .interactive-element {
+          box-shadow: 0 0 5px #00bfff, /* Inner Cyan */ 0 0 10px #00bfff,
+            /* Middle Cyan */ 0 0 20px #2f00ff,
+            /* Outer Magenta */ 0 0 30px #ff00f2; /* Farthest Magenta */
+        }
+
+        .title-text {
+          color: #ffffff;
+          /* A sharp inner glow with a diffuse outer glow for readability */
+          text-shadow: 0 0 3px #ffffff, /* Bright Inner White */ 0 0 7px #00bfff,
+            /* Middle Cyan */ 0 0 15px #0084ff; /* Outer Magenta */
+        }
+      }
+    </style>
+  </head>
+
+  <!-- Body colors now change based on the theme -->
+  <body
+    class="bg-gray-100 dark:bg-gray-900 font-sans min-h-screen flex items-center justify-center transition-colors duration-300"
+  >
+    <!-- Main calculator card also changes color and uses the new shadow class -->
+    <div
+      id="app"
+      class="w-full max-w-md p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg interactive-element"
+    >
+      <!-- Title uses the new text class for dynamic glow -->
+      <h1 class="text-center text-2xl font-bold mb-6 title-text">
+        My Calculator
+      </h1>
+
+      <!-- Display area with theme-aware colors -->
+      <div
+        class="bg-gray-200 dark:bg-black text-gray-800 dark:text-green-400 text-right px-4 py-3 rounded mb-4 font-mono text-xl interactive-element"
+      >
+        {{answer}}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <!-- Input fields with theme-aware colors -->
+        <div>
+          <input
+            type="number"
+            v-model="userInput.firstNumber"
+            class="w-full p-3 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 interactive-element"
+            placeholder="Enter First Number"
+          />
+          <small class="text-red-600 mt-1" v-if="Validation.firstNumberStatus"
+            >Please Enter First Number</small
+          >
+        </div>
+
+        <div>
+          <input
+            type="number"
+            v-model="userInput.secondNumber"
+            class="w-full p-3 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 interactive-element"
+            placeholder="Enter Second Number"
+          />
+          <small class="text-red-600 mt-1" v-if="Validation.secondNumberStatus"
+            >Please Enter Second Number</small
+          >
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center mb-4">
+        <!-- Select dropdown with theme-aware colors -->
+        <select
+          v-model="userInput.operators"
+          class="w-1/3 p-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-400 interactive-element"
+        >
+          <option disabled value="">Choose Option ↓</option>
+          <option value="+">+</option>
+          <option value="-">-</option>
+          <option value="*">*</option>
+          <option value="/">/</option>
+        </select>
+        <small class="text-red-600 mt-1" v-if="Validation.operatorStatus"
+          >Please Choose Option</small
+        >
+        <!-- Buttons use the new shadow class -->
+        <button
+          class="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded interactive-element"
+          @click="calculate()"
+        >
+          Calculate
+        </button>
+        <button
+          class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded interactive-element"
+          @click="cleanForm()"
+        >
+          Clear
+        </button>
+      </div>
+
+      <!-- Save button uses the new shadow class -->
+      <button
+        class="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded interactive-element mb-4"
+        @click="save()"
+      >
+        Save
+      </button>
+
+      <div>
+        <h2 class="text-lg font-semibold mb-2 title-text">History</h2>
+        <!-- History items with theme-aware colors -->
+        <div class="space-y-2">
+            <div
+            class="bg-gray-200 dark:bg-gray-700 p-3 rounded text-gray-800 dark:text-green-300 font-mono interactive-element"
+            v-for="History in Histories"
+            >
+            {{History}}
+            </div>
+        </div>
+      </div>
+    </div>
+    <!-- Vue.js script (no changes needed here) -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+      let app = new Vue({
+        el: "#app",
+        data: {
+          answer: 0,
+          userInput: {
+            firstNumber: "",
+            secondNumber: "",
+            operators: "",
+          },
+          Histories: [],
+          saveStatus: false,
+          Validation: {
+            firstNumberStatus: false,
+            secondNumberStatus: false,
+            operatorStatus: false,
+          },
+        },
+        methods: {
+          calculate() {
+            this.ValidationCheck();
+            if (
+              !this.Validation.firstNumberStatus &&
+              !this.Validation.secondNumberStatus &&
+              !this.Validation.operatorStatus
+            ) {
+              let result = this.operation();
+
+              this.answer = `${this.userInput.firstNumber} ${this.userInput.operators} ${this.userInput.secondNumber} = ${result}`;
+
+              this.saveStatus = true;
+              this.clearForm();
+            }
+          },
+          ValidationCheck() {
+            this.Validation.firstNumberStatus =
+              this.userInput.firstNumber == "" ? true : false;
+            this.Validation.secondNumberStatus =
+              this.userInput.secondNumber == "" ? true : false;
+            this.Validation.operatorStatus =
+              this.userInput.operators == "" ? true : false;
+          },
+          clearForm() {
+            (this.userInput.firstNumber = ""),
+              (this.userInput.secondNumber = ""),
+              (this.userInput.operators = "");
+          },
+          cleanForm() {
+            this.Validation.firstNumberStatus = false;
+            this.Validation.secondNumberStatus = false;
+            this.Validation.operatorStatus = false;
+            this.answer = 0;
+            this.Histories = [];
+            this.clearForm();
+          },
+          save() {
+            if (this.saveStatus) {
+              if (this.answer !== 0) { // Prevent saving the initial "0"
+                this.Histories.push(this.answer);
+              }
+              this.answer = 0;
+            }
+            this.saveStatus = false;
+          },
+          operation() {
+            let num1 = parseInt(this.userInput.firstNumber); // changing string to int
+            let num2 = parseInt(this.userInput.secondNumber);
+            switch (this.userInput.operators) {
+              case "+":
+                return num1 + num2;
+              case "-":
+                return num1 - num2;
+              case "*":
+                return num1 * num2;
+              case "/":
+                // Added a check for division by zero
+                return num2 !== 0 ? num1 / num2 : 'Error';
+              default:
+                return "error";
+            }
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
